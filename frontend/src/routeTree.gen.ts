@@ -9,38 +9,128 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReviewsRouteImport } from './routes/reviews'
+import { Route as DigestRouteImport } from './routes/digest'
+import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CompetitorsIndexRouteImport } from './routes/competitors.index'
+import { Route as CompetitorsSlugRouteImport } from './routes/competitors.$slug'
 
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DigestRoute = DigestRouteImport.update({
+  id: '/digest',
+  path: '/digest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalysisRoute = AnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompetitorsIndexRoute = CompetitorsIndexRouteImport.update({
+  id: '/competitors/',
+  path: '/competitors/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompetitorsSlugRoute = CompetitorsSlugRouteImport.update({
+  id: '/competitors/$slug',
+  path: '/competitors/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
+  '/digest': typeof DigestRoute
+  '/reviews': typeof ReviewsRoute
+  '/competitors/$slug': typeof CompetitorsSlugRoute
+  '/competitors/': typeof CompetitorsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
+  '/digest': typeof DigestRoute
+  '/reviews': typeof ReviewsRoute
+  '/competitors/$slug': typeof CompetitorsSlugRoute
+  '/competitors': typeof CompetitorsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
+  '/digest': typeof DigestRoute
+  '/reviews': typeof ReviewsRoute
+  '/competitors/$slug': typeof CompetitorsSlugRoute
+  '/competitors/': typeof CompetitorsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/analysis'
+    | '/digest'
+    | '/reviews'
+    | '/competitors/$slug'
+    | '/competitors/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/analysis'
+    | '/digest'
+    | '/reviews'
+    | '/competitors/$slug'
+    | '/competitors'
+  id:
+    | '__root__'
+    | '/'
+    | '/analysis'
+    | '/digest'
+    | '/reviews'
+    | '/competitors/$slug'
+    | '/competitors/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalysisRoute: typeof AnalysisRoute
+  DigestRoute: typeof DigestRoute
+  ReviewsRoute: typeof ReviewsRoute
+  CompetitorsSlugRoute: typeof CompetitorsSlugRoute
+  CompetitorsIndexRoute: typeof CompetitorsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/digest': {
+      id: '/digest'
+      path: '/digest'
+      fullPath: '/digest'
+      preLoaderRoute: typeof DigestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analysis': {
+      id: '/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof AnalysisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +138,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/competitors/': {
+      id: '/competitors/'
+      path: '/competitors'
+      fullPath: '/competitors/'
+      preLoaderRoute: typeof CompetitorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/competitors/$slug': {
+      id: '/competitors/$slug'
+      path: '/competitors/$slug'
+      fullPath: '/competitors/$slug'
+      preLoaderRoute: typeof CompetitorsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalysisRoute: AnalysisRoute,
+  DigestRoute: DigestRoute,
+  ReviewsRoute: ReviewsRoute,
+  CompetitorsSlugRoute: CompetitorsSlugRoute,
+  CompetitorsIndexRoute: CompetitorsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
