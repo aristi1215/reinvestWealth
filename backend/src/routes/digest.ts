@@ -8,8 +8,8 @@ export const digestRouter = Router()
 digestRouter.get(
   '/latest',
   asyncHandler(async (_req, res) => {
-    let digest = store.latestDigest()
-    if (!digest) digest = buildDigest()
+    let digest = await store.latestDigest()
+    if (!digest) digest = await buildDigest()
     res.json({ digest })
   }),
 )
@@ -17,14 +17,14 @@ digestRouter.get(
 digestRouter.get(
   '/history',
   asyncHandler(async (_req, res) => {
-    res.json({ digests: store.listDigests() })
+    res.json({ digests: await store.listDigests() })
   }),
 )
 
 digestRouter.post(
   '/generate',
   asyncHandler(async (_req, res) => {
-    const digest = buildDigest()
+    const digest = await buildDigest()
     res.json({ digest })
   }),
 )

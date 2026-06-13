@@ -57,12 +57,14 @@ reviewsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     const params = querySchema.parse(req.query)
-    let reviews = store.listReviews()
+    let reviews = await store.listReviews()
 
     if (params.company_slug) {
       const slugs = params.company_slug.split(',')
-      const companyIds = slugs
-        .map((s) => store.getCompanyBySlug(s.trim())?.id)
+      const companyIds = (
+        await Promise.all(slugs.map((s) => store.getCompanyBySlug(s.trim())))
+      )
+        .map((c) => c?.id)
         .filter(Boolean) as string[]
       reviews = reviews.filter((r) => companyIds.includes(r.company_id))
     }
@@ -103,10 +105,12 @@ reviewsRouter.get(
     const total = sorted.length
     const start = (params.page - 1) * params.per_page
     const end = start + params.per_page
-    const items = sorted.slice(start, end).map((r) => ({
-      ...r,
-      company: store.getCompanyById(r.company_id) ?? null,
-    }))
+    const items = await Promise.all(
+      sorted.slice(start, end).map(async (r) => ({
+        ...r,
+        company: (await store.getCompanyById(r.company_id)) ?? null,
+      })),
+    )
     const ratings = sorted.map((r) => r.rating ?? 0).filter((n) => n > 0)
     const avg =
       ratings.length > 0
@@ -131,10 +135,10 @@ reviewsRouter.get(
 reviewsRouter.get(
   '/companies/:slug',
   asyncHandler(async (req, res) => {
-    const company = store.getCompanyBySlug(req.params.slug as string)
+    const company = await store.getCompanyBySlug(req.params.slug as string)
     if (!company) throw new AppError('Company not found', 404, 'NOT_FOUND')
     const params = querySchema.parse(req.query)
-    let reviews = store.getReviewsByCompanyId(company.id)
+    let reviews = await store.getReviewsByCompanyId(company.id)
     if (params.platform) {
       const platforms = params.platform.split(',')
       reviews = reviews.filter((r) => platforms.includes(r.platform))

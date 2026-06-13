@@ -128,7 +128,7 @@ export async function runScrape(
   if (env.ENABLE_PLAYWRIGHT) {
     try {
       const reviews = await scrapeWithPlaywright(company, platform)
-      reviews.forEach((r) => store.upsertReview(r))
+      for (const r of reviews) await store.upsertReview(r)
       return { count: reviews.length, mocked: false }
     } catch (err) {
       console.warn(

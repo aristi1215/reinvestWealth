@@ -16,29 +16,31 @@ function startOfIsoWeek(date: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-export function buildDigest(): WeeklyDigest {
-  const companies = store.listCompanies()
+export async function buildDigest(): Promise<WeeklyDigest> {
+  const companies = await store.listCompanies()
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-  const whats_new: WeeklyDigestData['whats_new'] = companies.map((c) => {
-    const companyReviews = store.getReviewsByCompanyId(c.id)
-    const newOnes = companyReviews.filter(
-      (r) => new Date(r.scraped_at) >= sevenDaysAgo,
-    )
-    const ratings = companyReviews
-      .map((r) => r.rating ?? 0)
-      .filter((n) => n > 0)
-    const avg =
-      ratings.length > 0
-        ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) /
-          10
-        : 0
-    return { company_slug: c.slug, new_review_count: newOnes.length, avg_rating: avg }
-  })
+  const whats_new: WeeklyDigestData['whats_new'] = await Promise.all(
+    companies.map(async (c) => {
+      const companyReviews = await store.getReviewsByCompanyId(c.id)
+      const newOnes = companyReviews.filter(
+        (r) => new Date(r.scraped_at) >= sevenDaysAgo,
+      )
+      const ratings = companyReviews
+        .map((r) => r.rating ?? 0)
+        .filter((n) => n > 0)
+      const avg =
+        ratings.length > 0
+          ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) /
+            10
+          : 0
+      return { company_slug: c.slug, new_review_count: newOnes.length, avg_rating: avg }
+    }),
+  )
 
   const emerging_pain_themes: WeeklyDigestData['emerging_pain_themes'] = []
   for (const c of companies) {
-    const run = store.latestCompletedRun(c.id, 'pain_themes')
+    const run = await store.latestCompletedRun(c.id, 'pain_themes')
     if (!run || !run.result) continue
     const themes = (run.result as { themes?: PainTheme[] }).themes ?? []
     const top = [...themes].sort((a, b) => b.frequency_pct - a.frequency_pct)[0]
@@ -54,7 +56,7 @@ export function buildDigest(): WeeklyDigest {
   const competitive_opportunities: WeeklyDigestData['competitive_opportunities'] =
     []
   for (const c of companies.filter((c) => !c.is_own_product)) {
-    const run = store.latestCompletedRun(c.id, 'copy_suggestions')
+    const run = await store.latestCompletedRun(c.id, 'copy_suggestions')
     if (!run) continue
     const result = run.result as CopySuggestionsResult | null
     if (!result?.ad_headlines?.length) continue
@@ -66,27 +68,33 @@ export function buildDigest(): WeeklyDigest {
     if (competitive_opportunities.length >= 3) break
   }
 
-  const allReviews = store.listReviews()
-  const competitorReviews = allReviews.filter((r) => {
-    const c = store.getCompanyById(r.company_id)
-    return c && !c.is_own_product
-  })
+  const allReviews = await store.listReviews()
+  const competitorReviews = (
+    await Promise.all(
+      allReviews.map(async (r) => {
+        const c = await store.getCompanyById(r.company_id)
+        return c && !c.is_own_product ? r : null
+      }),
+    )
+  ).filter(Boolean) as typeof allReviews
 
-  const top_reviews: WeeklyDigestData['top_reviews'] = [...competitorReviews]
-    .sort((a, b) => Math.abs((b.rating ?? 3) - 3) - Math.abs((a.rating ?? 3) - 3))
-    .slice(0, 5)
-    .map((r) => {
-      const co = store.getCompanyById(r.company_id)
-      const excerpt =
-        (r.cons_text && r.rating && r.rating <= 2 ? r.cons_text : r.pros_text) ?? ''
-      return {
-        review_id: r.id,
-        company_slug: co?.slug ?? '',
-        rating: r.rating ?? 0,
-        title: r.title ?? 'Review',
-        excerpt: excerpt.slice(0, 200),
-      }
-    })
+  const top_reviews: WeeklyDigestData['top_reviews'] = await Promise.all(
+    [...competitorReviews]
+      .sort((a, b) => Math.abs((b.rating ?? 3) - 3) - Math.abs((a.rating ?? 3) - 3))
+      .slice(0, 5)
+      .map(async (r) => {
+        const co = await store.getCompanyById(r.company_id)
+        const excerpt =
+          (r.cons_text && r.rating && r.rating <= 2 ? r.cons_text : r.pros_text) ?? ''
+        return {
+          review_id: r.id,
+          company_slug: co?.slug ?? '',
+          rating: r.rating ?? 0,
+          title: r.title ?? 'Review',
+          excerpt: excerpt.slice(0, 200),
+        }
+      }),
+  )
 
   const week_start = startOfIsoWeek(new Date())
   const digest: WeeklyDigest = {
@@ -100,6 +108,6 @@ export function buildDigest(): WeeklyDigest {
     },
     created_at: new Date().toISOString(),
   }
-  store.saveDigest(digest)
+  await store.saveDigest(digest)
   return digest
 }

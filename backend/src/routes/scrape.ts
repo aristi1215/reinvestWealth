@@ -18,13 +18,13 @@ scrapeRouter.post(
     const body = triggerSchema.parse(req.body)
     if (body.company_slug === 'all') {
       const jobs = []
-      for (const c of store.listCompanies()) {
+      for (const c of await store.listCompanies()) {
         jobs.push(await startScrapeForCompany(c.id, body.platform))
       }
       res.json({ jobs })
       return
     }
-    const company = store.getCompanyBySlug(body.company_slug)
+    const company = await store.getCompanyBySlug(body.company_slug)
     if (!company) throw new AppError('Company not found', 404, 'NOT_FOUND')
     const job = await startScrapeForCompany(company.id, body.platform)
     res.json({ job })
@@ -34,10 +34,12 @@ scrapeRouter.post(
 scrapeRouter.get(
   '/jobs',
   asyncHandler(async (_req, res) => {
-    const jobs = store.listScrapeJobs().map((j) => ({
-      ...j,
-      company: store.getCompanyById(j.company_id) ?? null,
-    }))
+    const jobs = await Promise.all(
+      (await store.listScrapeJobs()).map(async (j) => ({
+        ...j,
+        company: (await store.getCompanyById(j.company_id)) ?? null,
+      })),
+    )
     res.json({ jobs })
   }),
 )
@@ -45,10 +47,13 @@ scrapeRouter.get(
 scrapeRouter.get(
   '/jobs/:id',
   asyncHandler(async (req, res) => {
-    const job = store.getScrapeJob(req.params.id as string)
+    const job = await store.getScrapeJob(req.params.id as string)
     if (!job) throw new AppError('Job not found', 404, 'NOT_FOUND')
     res.json({
-      job: { ...job, company: store.getCompanyById(job.company_id) ?? null },
+      job: {
+        ...job,
+        company: (await store.getCompanyById(job.company_id)) ?? null,
+      },
     })
   }),
 )

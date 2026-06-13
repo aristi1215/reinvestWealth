@@ -12,15 +12,15 @@ import type {
 const PLATFORMS: Platform[] = ['capterra', 'g2']
 
 export async function processScrapeJob(jobId: string): Promise<void> {
-  const job = store.getScrapeJob(jobId)
+  const job = await store.getScrapeJob(jobId)
   if (!job) return
-  store.updateScrapeJob(jobId, {
+  await store.updateScrapeJob(jobId, {
     status: 'running',
     started_at: new Date().toISOString(),
   })
 
   try {
-    const company = store.getCompanyById(job.company_id)
+    const company = await store.getCompanyById(job.company_id)
     if (!company) throw new Error('Company not found')
 
     const platforms: Platform[] = job.platform === 'all' ? PLATFORMS : [job.platform]
@@ -30,13 +30,13 @@ export async function processScrapeJob(jobId: string): Promise<void> {
       totalScraped += count
     }
 
-    store.updateScrapeJob(jobId, {
+    await store.updateScrapeJob(jobId, {
       status: 'completed',
       reviews_scraped: totalScraped,
       completed_at: new Date().toISOString(),
     })
   } catch (err) {
-    store.updateScrapeJob(jobId, {
+    await store.updateScrapeJob(jobId, {
       status: 'failed',
       error_message: err instanceof Error ? err.message : String(err),
       completed_at: new Date().toISOString(),
@@ -48,7 +48,7 @@ export async function startScrapeForCompany(
   companyId: string,
   platform: Platform | 'all',
 ): Promise<ScrapeJob> {
-  const job = store.createScrapeJob({ company_id: companyId, platform })
+  const job = await store.createScrapeJob({ company_id: companyId, platform })
   void processScrapeJob(job.id)
   return job
 }
@@ -61,19 +61,19 @@ const SUBTYPES: Exclude<RunType, 'full'>[] = [
 ]
 
 export async function processAnalysisRun(runId: string): Promise<void> {
-  const run = store.getAnalysisRun(runId)
+  const run = await store.getAnalysisRun(runId)
   if (!run) return
 
-  store.updateAnalysisRun(runId, {
+  await store.updateAnalysisRun(runId, {
     status: 'running',
     started_at: new Date().toISOString(),
   })
 
   try {
-    const company = store.getCompanyById(run.company_id)
+    const company = await store.getCompanyById(run.company_id)
     if (!company) throw new Error('Company not found')
 
-    const reviews = store.getReviewsByCompanyId(company.id)
+    const reviews = await store.getReviewsByCompanyId(company.id)
 
     if (run.run_type === 'full') {
       const aggregate: FullAnalysisResult = {
@@ -102,8 +102,7 @@ export async function processAnalysisRun(runId: string): Promise<void> {
         else if (subtype === 'copy_suggestions')
           aggregate.copy_suggestions = sub.result as FullAnalysisResult['copy_suggestions']
 
-        // Also persist sub-runs so latestCompletedRun(subtype) finds them.
-        store.createAnalysisRun({
+        await store.createAnalysisRun({
           company_id: company.id,
           run_type: subtype,
           status: 'completed',
@@ -115,7 +114,7 @@ export async function processAnalysisRun(runId: string): Promise<void> {
           completed_at: new Date().toISOString(),
         })
       }
-      store.updateAnalysisRun(runId, {
+      await store.updateAnalysisRun(runId, {
         status: 'completed',
         reviews_analyzed: analyzedCount,
         result: aggregate,
@@ -135,14 +134,14 @@ export async function processAnalysisRun(runId: string): Promise<void> {
       reviews,
     )
 
-    store.updateAnalysisRun(runId, {
+    await store.updateAnalysisRun(runId, {
       status: 'completed',
       reviews_analyzed: sub.reviewsAnalyzed,
       result: sub.result,
       completed_at: new Date().toISOString(),
     })
   } catch (err) {
-    store.updateAnalysisRun(runId, {
+    await store.updateAnalysisRun(runId, {
       status: 'failed',
       error_message: err instanceof Error ? err.message : String(err),
       completed_at: new Date().toISOString(),
@@ -154,7 +153,7 @@ export async function startAnalysisRun(
   companyId: string,
   runType: RunType,
 ): Promise<AnalysisRun> {
-  const run = store.createAnalysisRun({
+  const run = await store.createAnalysisRun({
     company_id: companyId,
     run_type: runType,
     status: 'pending',
