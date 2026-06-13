@@ -6,14 +6,13 @@ import {
   isStale,
   severityClasses,
 } from '../../lib/utils'
-import type { AnalysisRun, Company, PainTheme, RunType } from '../../types'
+import type { AnalysisRun, Company, PainTheme } from '../../types'
 
 interface CompetitorCardProps {
   company: Company & { review_count: number; average_rating: number | null }
   painThemesRun?: AnalysisRun | null
   platforms: string[]
   lastScrapedAt: string | null
-  latestRunsByType: Partial<Record<Exclude<RunType, 'full'>, AnalysisRun | null>>
 }
 
 export function CompetitorCard({
@@ -21,7 +20,6 @@ export function CompetitorCard({
   painThemesRun,
   platforms,
   lastScrapedAt,
-  latestRunsByType: _latestRunsByType,
 }: CompetitorCardProps) {
   const themes =
     (painThemesRun?.result as { themes?: PainTheme[] } | null)?.themes ?? []

@@ -44,11 +44,7 @@ function CompetitorsPage() {
                 average_rating: entry.average_rating,
               }}
               painThemesRun={entry.latest_runs.pain_themes}
-              latestRunsByType={entry.latest_runs}
-              platforms={['capterra', 'g2'].filter(
-                (p) =>
-                  entry.company.slug !== 'reinvestwealth' || p === 'capterra' || p === 'g2',
-              )}
+              platforms={['capterra', 'g2']}
               lastScrapedAt={entry.last_scraped_at}
             />
           ))}
